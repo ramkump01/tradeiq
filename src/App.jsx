@@ -25,18 +25,47 @@ const socialLeaders = [
   { name: 'Sara Khan', tag: 'Momentum swing trader', follow: 'Copy' },
 ];
 
-const openTrades = [
-  { instrument: 'AAPL', type: 'Stock', side: 'Buy', amount: '$8,420', pnl: '+$428' },
-  { instrument: 'BTCUSD', type: 'Crypto', side: 'Buy', amount: '$12,200', pnl: '+$1,060' },
-  { instrument: 'TSLA', type: 'Stock', side: 'Sell', amount: '$5,980', pnl: '-$210' },
-  { instrument: 'EURUSD', type: 'Forex', side: 'Buy', amount: '$3,100', pnl: '+$84' },
+const placedTrades = [
+  { ticket: 'CT-93284', platform: 'cTrader', instrument: 'XAUUSD', type: 'Commodities', side: 'Buy', amount: '$6,480', pnl: '+$212' },
+  { ticket: 'MT5-88012', platform: 'MT5', instrument: 'EURUSD', type: 'Forex', side: 'Buy', amount: '$3,100', pnl: '+$84' },
+  { ticket: 'TQ-10291', platform: 'TradeIQ', instrument: 'AAPL', type: 'Stock', side: 'Buy', amount: '$8,420', pnl: '+$428' },
+  { ticket: 'MT5-88077', platform: 'MT5', instrument: 'US100', type: 'Indices', side: 'Sell', amount: '$4,950', pnl: '-$106' },
+  { ticket: 'CT-93321', platform: 'cTrader', instrument: 'GBPJPY', type: 'Forex', side: 'Sell', amount: '$2,880', pnl: '+$54' },
+  { ticket: 'TQ-10306', platform: 'TradeIQ', instrument: 'BTCUSD', type: 'Crypto', side: 'Buy', amount: '$12,200', pnl: '+$1,060' },
 ];
 
-const tradeIQIdeas = [
-  { title: 'Add to semiconductors', reason: 'Portfolio is underweight AI momentum names this week.', confidence: '91%' },
-  { title: 'Reduce EURUSD exposure', reason: 'Volatility model detected weakening trend quality.', confidence: '77%' },
-  { title: 'Hedge BTC with partial USDC', reason: 'Risk balance is above your preferred threshold.', confidence: '84%' },
-];
+const tradeIQProfiles = {
+  low: {
+    label: 'Low risk steady',
+    appetite: 'Capital preservation with lower volatility.',
+    health: 'Conservative portfolio fit: 74%',
+    recommendations: [
+      { title: 'Trim BTCUSD position by 20%', reason: 'Reduces portfolio volatility and drawdown risk.', confidence: '89%' },
+      { title: 'Add defensive ETF sleeve', reason: 'Increase allocation to lower-beta broad-market exposure.', confidence: '86%' },
+      { title: 'Set tighter stops on FX positions', reason: 'Protects capital during macro event spikes.', confidence: '81%' },
+    ],
+  },
+  medium: {
+    label: 'Medium risk balanced',
+    appetite: 'Balanced growth and risk management.',
+    health: 'Balanced portfolio fit: 83%',
+    recommendations: [
+      { title: 'Add to semiconductors', reason: 'Portfolio is underweight AI momentum names this week.', confidence: '91%' },
+      { title: 'Reduce EURUSD exposure', reason: 'Volatility model detected weakening trend quality.', confidence: '77%' },
+      { title: 'Hedge BTC with partial USDC', reason: 'Risk balance is above your preferred threshold.', confidence: '84%' },
+    ],
+  },
+  high: {
+    label: 'High risk aggressive',
+    appetite: 'Maximum growth with higher volatility tolerance.',
+    health: 'Aggressive portfolio fit: 88%',
+    recommendations: [
+      { title: 'Increase high-momentum tech exposure', reason: 'Current trend acceleration supports tactical upside.', confidence: '87%' },
+      { title: 'Scale into BTCUSD on pullbacks', reason: 'High-beta allocation aligns with aggressive profile.', confidence: '82%' },
+      { title: 'Loosen FX stop distance for trend trades', reason: 'Allows positions to absorb normal market noise.', confidence: '79%' },
+    ],
+  },
+};
 
 const socialTrends = [
   { topic: 'AI Infrastructure Basket', trend: '+31% copied', sentiment: 'Bullish' },
@@ -69,6 +98,7 @@ export default function App() {
   const [action, setAction] = useState('buy');
   const [instrument, setInstrument] = useState('NVDA');
   const [quantity, setQuantity] = useState(10);
+  const [riskTolerance, setRiskTolerance] = useState('medium');
   const [status, setStatus] = useState('Illustration only - no live brokerage integration.');
 
   const sampleUser = {
@@ -80,10 +110,20 @@ export default function App() {
 
   const selectedInstrument = useMemo(() => instruments.find((item) => item.symbol === instrument) || instruments[0], [instrument]);
   const estimatedCost = useMemo(() => selectedInstrument.price * quantity, [selectedInstrument, quantity]);
+  const activeProfile = tradeIQProfiles[riskTolerance];
 
   const handleSubmit = (event) => {
     event.preventDefault();
     setStatus(`${action === 'buy' ? 'Buy' : 'Sell'} order prepared for ${quantity} ${selectedInstrument.symbol} - demo only`);
+  };
+
+  const handleHomeClick = () => {
+    if (isLoggedIn) {
+      setIsLoggedIn(false);
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   if (!isLoggedIn) {
@@ -102,8 +142,13 @@ export default function App() {
             <a href="#tradeiq">TradeIQ</a>
             <a href="#social">Social</a>
             <a href="#wallet">Wallet</a>
+            <a href="#downloads">Downloads</a>
           </nav>
-          <button className="btn btn-primary" onClick={() => setIsLoggedIn(true)}>Login</button>
+          <div className="topbar-actions">
+            <button className="btn btn-ghost" onClick={handleHomeClick}>Home</button>
+            <button className="btn btn-secondary">Register</button>
+            <button className="btn btn-primary" onClick={() => setIsLoggedIn(true)}>Login</button>
+          </div>
         </header>
 
         <section className="hero">
@@ -112,6 +157,7 @@ export default function App() {
             <h2>Trade stocks, crypto, forex and more with AI-backed insight.</h2>
             <p>Follow top traders, mirror smart portfolios, and let TradeIQ recommend your next move based on your live holdings.</p>
             <div className="hero-actions">
+              <button className="btn btn-secondary">Register</button>
               <button className="btn btn-primary" onClick={() => setIsLoggedIn(true)}>Login To Dashboard</button>
               <button className="btn btn-secondary">Watch demo</button>
             </div>
@@ -225,6 +271,34 @@ export default function App() {
             </div>
           </div>
         </section>
+
+        <section className="card panel" id="downloads">
+          <div className="panel-header">
+            <div>
+              <p className="small-note">Trading Platform Downloads</p>
+              <h3 className="section-title">Get your platform</h3>
+            </div>
+            <span className="badge">Desktop + Mobile</span>
+          </div>
+          <div className="download-grid">
+            <article className="download-card">
+              <strong>TradeIQ Platform</strong>
+              <p className="list-meta">Native TradeIQ terminal for portfolio, social copy trading and AI insights.</p>
+              <button className="btn btn-primary">Download TradeIQ</button>
+            </article>
+            <article className="download-card">
+              <strong>MetaTrader 5 (MT5)</strong>
+              <p className="list-meta">Advanced charting, expert advisors and multi-asset execution.</p>
+              <button className="btn btn-secondary">Download MT5</button>
+            </article>
+            <article className="download-card">
+              <strong>cTrader</strong>
+              <p className="list-meta">Institutional-grade execution with modern order and depth tools.</p>
+              <button className="btn btn-secondary">Download cTrader</button>
+            </article>
+          </div>
+        </section>
+        <button className="home-fab" onClick={handleHomeClick}>Home</button>
       </div>
     );
   }
@@ -240,7 +314,8 @@ export default function App() {
           </div>
         </div>
         <nav className="topnav">
-          <a href="#open-trades">Open Trades</a>
+          <a href="#all-trades">All Trades</a>
+          <a href="#risk-engine">Risk Engine</a>
           <a href="#tradeiq-dashboard">TradeIQ</a>
           <a href="#social-trends">Social Trends</a>
           <a href="#movers">Movers</a>
@@ -249,7 +324,7 @@ export default function App() {
         <div className="topbar-actions">
           <div className="badge">Balance {sampleUser.balance}</div>
           <div className="badge">Badge {sampleUser.socialBadge}</div>
-          <button className="btn btn-secondary" onClick={() => setIsLoggedIn(false)}>Home</button>
+          <button className="btn btn-secondary" onClick={handleHomeClick}>Home</button>
         </div>
       </header>
 
@@ -259,8 +334,8 @@ export default function App() {
           <h2>Live sample trading workspace across stocks, crypto and forex.</h2>
           <p>Monitor portfolio health, discover community trends, and use TradeIQ signals to manage risk.</p>
           <div className="hero-chips">
-            <span className="chip">Open trades {sampleUser.openTrades}</span>
-            <span className="chip">TradeIQ engine online</span>
+            <span className="chip">Placed trades {placedTrades.length}</span>
+            <span className="chip">TradeIQ proprietary engine online</span>
             <span className="chip">Social rank top 12%</span>
           </div>
         </div>
@@ -272,29 +347,47 @@ export default function App() {
           <div className="balance-amount">{sampleUser.balance}</div>
           <div className="sparkline" />
           <div className="metrics-grid">
-            <div className="metric-card card"><span className="small-note">Open trades</span><strong>{sampleUser.openTrades}</strong></div>
+            <div className="metric-card card"><span className="small-note">Placed trades</span><strong>{placedTrades.length}</strong></div>
             <div className="metric-card card"><span className="small-note">Available cash</span><strong>$24,180</strong></div>
             <div className="metric-card card"><span className="small-note">Social badge</span><strong>{sampleUser.socialBadge}</strong></div>
-            <div className="metric-card card"><span className="small-note">Risk score</span><strong>Moderate</strong></div>
+            <div className="metric-card card"><span className="small-note">Risk profile</span><strong>{activeProfile.label}</strong></div>
           </div>
         </div>
       </section>
 
+      <section className="card panel" id="risk-engine">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">TradeIQ Proprietary Tool</p>
+            <h3 className="section-title">Recommendation engine risk tolerance</h3>
+          </div>
+          <span className="badge">Portfolio-aware</span>
+        </div>
+        <div className="risk-toggle-row">
+          <button className={`risk-btn ${riskTolerance === 'low' ? 'active' : ''}`} onClick={() => setRiskTolerance('low')}>Low risk steady</button>
+          <button className={`risk-btn ${riskTolerance === 'medium' ? 'active' : ''}`} onClick={() => setRiskTolerance('medium')}>Medium risk</button>
+          <button className={`risk-btn ${riskTolerance === 'high' ? 'active' : ''}`} onClick={() => setRiskTolerance('high')}>High risk</button>
+        </div>
+        <div className="list-meta" style={{ marginTop: '10px' }}>
+          {activeProfile.appetite} TradeIQ portfolio analysis: {activeProfile.health}
+        </div>
+      </section>
+
       <main className="content-grid">
-        <section className="card panel" id="open-trades">
+        <section className="card panel" id="all-trades">
           <div className="panel-header">
             <div>
               <p className="small-note">Portfolio</p>
-              <h3 className="section-title">Open trades across platform</h3>
+              <h3 className="section-title">All placed trades: cTrader, MT5 and TradeIQ</h3>
             </div>
             <button className="btn btn-ghost">Manage trades</button>
           </div>
           <div className="list">
-            {openTrades.map((trade) => (
-              <div className="position-row" key={trade.instrument}>
+            {placedTrades.map((trade) => (
+              <div className="position-row" key={trade.ticket}>
                 <div>
                   <strong>{trade.instrument}</strong>
-                  <div className="list-meta">{trade.type} - {trade.side}</div>
+                  <div className="list-meta">{trade.platform} - {trade.type} - {trade.side} - {trade.ticket}</div>
                 </div>
                 <div className="right">
                   <strong>{trade.amount}</strong>
@@ -345,12 +438,12 @@ export default function App() {
           <div className="panel-header">
             <div>
               <p className="small-note">TradeIQ Recommendation Engine</p>
-              <h3 className="section-title">AI recommendations</h3>
+              <h3 className="section-title">AI recommendations by risk appetite</h3>
             </div>
             <span className="badge">Live signals</span>
           </div>
           <div className="list">
-            {tradeIQIdeas.map((idea) => (
+            {activeProfile.recommendations.map((idea) => (
               <div className="recommend-row" key={idea.title}>
                 <div>
                   <strong>{idea.title}</strong>
@@ -442,6 +535,7 @@ export default function App() {
           </div>
         </div>
       </section>
+      <button className="home-fab" onClick={handleHomeClick}>Home</button>
     </div>
   );
 }
