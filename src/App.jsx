@@ -93,6 +93,21 @@ const watchlist = [
   { symbol: 'SPY', price: '$544.60', change: '+0.4%' },
 ];
 
+const communityTradeFlow = {
+  buying: [
+    { symbol: 'NVDA', users: 1422, notional: '$18.2M', delta: '+22%' },
+    { symbol: 'XAUUSD', users: 918, notional: '$9.4M', delta: '+14%' },
+    { symbol: 'BTCUSD', users: 1304, notional: '$21.1M', delta: '+19%' },
+    { symbol: 'MSFT', users: 744, notional: '$7.0M', delta: '+11%' },
+  ],
+  selling: [
+    { symbol: 'TSLA', users: 1006, notional: '$12.0M', delta: '+17%' },
+    { symbol: 'EURUSD', users: 672, notional: '$6.3M', delta: '+8%' },
+    { symbol: 'BABA', users: 590, notional: '$4.8M', delta: '+6%' },
+    { symbol: 'RIVN', users: 430, notional: '$3.2M', delta: '+4%' },
+  ],
+};
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [action, setAction] = useState('buy');
@@ -315,6 +330,7 @@ export default function App() {
         </div>
         <nav className="topnav">
           <a href="#all-trades">All Trades</a>
+          <a href="#market-flow">Market Flow</a>
           <a href="#risk-engine">Risk Engine</a>
           <a href="#tradeiq-dashboard">TradeIQ</a>
           <a href="#social-trends">Social Trends</a>
@@ -370,6 +386,54 @@ export default function App() {
         </div>
         <div className="list-meta" style={{ marginTop: '10px' }}>
           {activeProfile.appetite} TradeIQ portfolio analysis: {activeProfile.health}
+        </div>
+      </section>
+
+      <section className="card panel" id="market-flow">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">Live user trade data</p>
+            <h3 className="section-title">Trending market trades by other users</h3>
+          </div>
+          <span className="badge">Realtime flow</span>
+        </div>
+        <div className="flow-grid">
+          <div className="flow-card">
+            <div className="flow-head">
+              <strong>Most Bought</strong>
+              <span className="positive">Buying</span>
+            </div>
+            {communityTradeFlow.buying.map((item) => (
+              <div className="flow-row" key={`buy-${item.symbol}`}>
+                <div>
+                  <strong>{item.symbol}</strong>
+                  <div className="list-meta">{item.users} users</div>
+                </div>
+                <div className="right">
+                  <strong>{item.notional}</strong>
+                  <div className="positive">{item.delta}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flow-card">
+            <div className="flow-head">
+              <strong>Most Sold</strong>
+              <span className="negative">Selling</span>
+            </div>
+            {communityTradeFlow.selling.map((item) => (
+              <div className="flow-row" key={`sell-${item.symbol}`}>
+                <div>
+                  <strong>{item.symbol}</strong>
+                  <div className="list-meta">{item.users} users</div>
+                </div>
+                <div className="right">
+                  <strong>{item.notional}</strong>
+                  <div className="negative">{item.delta}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
