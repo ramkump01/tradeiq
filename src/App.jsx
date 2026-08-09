@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
+import { mockAccounts, mockTrades, mockCopyStrategy, userProfile } from './data/mockTrades';
+
+const tabs = ['Trade', 'Analyze', 'Insights'];
 
 const instruments = [
   { symbol: 'NVDA', name: 'NVIDIA', price: 125.4 },
@@ -93,6 +96,14 @@ const watchlist = [
   { symbol: 'SPY', price: '$544.60', change: '+0.4%' },
 ];
 
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 const communityTradeFlow = {
   buying: [
     { symbol: 'NVDA', users: 1422, notional: '$18.2M', delta: '+22%' },
@@ -108,13 +119,55 @@ const communityTradeFlow = {
   ],
 };
 
+function getTradeSupportReply(message) {
+  const q = message.toLowerCase();
+
+  if (q.includes('stop loss') || q.includes('take profit')) {
+    return 'A stop-loss helps cap downside risk, while a take-profit locks in gains. A simple approach is to set them before you enter and adjust them only when your thesis changes.';
+  }
+
+  if (q.includes('risk') || q.includes('position size')) {
+    return 'A common rule is to risk only a small portion of capital per trade, often around 0.5% to 2% depending on your tolerance and the setup.';
+  }
+
+  if (q.includes('crypto') || q.includes('btc')) {
+    return 'Crypto can be more volatile than equities, so keep position sizing conservative and watch for liquidity and funding conditions around major news events.';
+  }
+
+  if (q.includes('forex') || q.includes('eur') || q.includes('usd')) {
+    return 'Forex often reacts strongly to macro data and central bank commentary. Monitor economic calendars, spreads, and trend quality before sizing up.';
+  }
+
+  if (q.includes('portfolio') || q.includes('diversify')) {
+    return 'Diversification usually means spreading risk across uncorrelated ideas, sectors, or asset classes rather than chasing every market move.';
+  }
+
+  if (q.includes('market') || q.includes('trend')) {
+    return 'Trend-following usually works best when you combine momentum with structure, such as support and resistance levels and confirmation from volume or price action.';
+  }
+
+  return 'I can help with general trading topics like risk management, position sizing, forex, crypto, portfolio structure, and platform questions. Try asking, “What is a stop-loss?” or “How should I size a position?”';
+}
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [action, setAction] = useState('buy');
   const [instrument, setInstrument] = useState('NVDA');
   const [quantity, setQuantity] = useState(10);
   const [riskTolerance, setRiskTolerance] = useState('medium');
+  const [activeTab, setActiveTab] = useState('Trade');
+  const [selectedAccount, setSelectedAccount] = useState('mt5');
+  const [nativeDesktopEnabled, setNativeDesktopEnabled] = useState(false);
   const [status, setStatus] = useState('Illustration only - no live brokerage integration.');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 1,
+      role: 'assistant',
+      content: 'Hi! I’m TradeIQ Chat. I can answer general trading questions about risk, portfolio structure, forex, crypto, and markets.',
+    },
+  ]);
 
   const sampleUser = {
     name: 'Alex Morgan',
@@ -127,9 +180,56 @@ export default function App() {
   const estimatedCost = useMemo(() => selectedInstrument.price * quantity, [selectedInstrument, quantity]);
   const activeProfile = tradeIQProfiles[riskTolerance];
 
+  const analytics = useMemo(() => {
+    const positive = mockTrades.filter((trade) => trade.pnl > 0);
+    const negative = mockTrades.filter((trade) => trade.pnl < 0);
+    const totalPnL = mockTrades.reduce((sum, trade) => sum + trade.pnl, 0);
+    const winRate = Math.round((positive.length / mockTrades.length) * 100);
+    const avgWin = positive.length ? positive.reduce((sum, trade) => sum + trade.pnl, 0) / positive.length : 0;
+    const avgLoss = negative.length ? Math.abs(negative.reduce((sum, trade) => sum + trade.pnl, 0) / negative.length) : 0;
+    const rrRatio = avgLoss ? Number((avgWin / avgLoss).toFixed(2)) : 0;
+
+    const running = [];
+    let balance = 100000;
+    mockTrades.forEach((trade) => {
+      balance += trade.pnl;
+      running.push(balance);
+    });
+
+    const maxDrawdown = running.reduce((worst, value, index) => {
+      const peak = Math.max(...running.slice(0, index + 1));
+      return Math.min(worst, value - peak);
+    }, 0);
+
+    const exposure = mockTrades.reduce((acc, trade) => {
+      acc[trade.symbol] = (acc[trade.symbol] || 0) + trade.size;
+      return acc;
+    }, {});
+
+    return { winRate, avgWin, avgLoss, rrRatio, totalPnL, maxDrawdown, equityCurve: running, exposure };
+  }, []);
+
+  const exposureEntries = Object.entries(analytics.exposure).slice(0, 4);
+  const selectedAccountData = mockAccounts.find((account) => account.id === selectedAccount) ?? mockAccounts[0];
+
   const handleSubmit = (event) => {
     event.preventDefault();
     setStatus(`${action === 'buy' ? 'Buy' : 'Sell'} order prepared for ${quantity} ${selectedInstrument.symbol} - demo only`);
+  };
+
+  const handleChatSubmit = (event) => {
+    event.preventDefault();
+    const trimmed = chatInput.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setChatMessages((messages) => [
+      ...messages,
+      { id: Date.now(), role: 'user', content: trimmed },
+      { id: Date.now() + 1, role: 'assistant', content: getTradeSupportReply(trimmed) },
+    ]);
+    setChatInput('');
   };
 
   const handleHomeClick = () => {
@@ -314,6 +414,49 @@ export default function App() {
           </div>
         </section>
         <button className="home-fab" onClick={handleHomeClick}>Home</button>
+
+        <button className="chat-launcher" onClick={() => setIsChatOpen((value) => !value)}>
+          {isChatOpen ? 'Close chat' : 'TradeIQ Chat'}
+        </button>
+
+        {isChatOpen && (
+          <div className="chat-panel">
+            <div className="chat-header">
+              <div>
+                <strong>TradeIQ Chat</strong>
+                <p>Support assistant for general trading questions</p>
+              </div>
+              <button className="chat-close" onClick={() => setIsChatOpen(false)} aria-label="Close chat">
+                ×
+              </button>
+            </div>
+
+            <div className="chat-messages">
+              {chatMessages.map((message) => (
+                <div key={message.id} className={`chat-bubble ${message.role}`}>
+                  {message.content}
+                </div>
+              ))}
+            </div>
+
+            <div className="chat-quick-actions">
+              {['What is a stop-loss?', 'How should I size a position?', 'How do I think about crypto risk?'].map((suggestion) => (
+                <button key={suggestion} className="quick-chip" onClick={() => setChatInput(suggestion)}>
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
+            <form className="chat-form" onSubmit={handleChatSubmit}>
+              <input
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                placeholder="Ask about trading advice"
+              />
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        )}
       </div>
     );
   }
@@ -368,6 +511,264 @@ export default function App() {
             <div className="metric-card card"><span className="small-note">Social badge</span><strong>{sampleUser.socialBadge}</strong></div>
             <div className="metric-card card"><span className="small-note">Risk profile</span><strong>{activeProfile.label}</strong></div>
           </div>
+        </div>
+      </section>
+
+      <section className="card panel workspace-panel" id="workspace">
+        <div className="panel-header workspace-header">
+          <div>
+            <p className="small-note">Unified workspace</p>
+            <h3 className="section-title">MT5 + cTrader in one TradeIQ view</h3>
+          </div>
+          <div className="top-nav workspace-tabs" aria-label="Workspace tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={`nav-pill ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="content-shell">
+          {activeTab === 'Trade' && (
+            <section className="tab-panel trade-panel">
+              <div className="hero-card">
+                <div>
+                  <p className="eyebrow">Single product experience</p>
+                  <h1>One workspace for MT5 and cTrader activity.</h1>
+                  <p className="hero-copy">Alex Morgan stays signed in once while TradeIQ surfaces both broker environments as a unified analytics layer.</p>
+                </div>
+                <div className="hero-badge">SSO-ready demo</div>
+              </div>
+
+              <div className="account-grid">
+                {mockAccounts.map((account) => (
+                  <article key={account.id} className={`account-card ${account.color}`}>
+                    <div className="card-head">
+                      <div>
+                        <p className="eyebrow">{account.label}</p>
+                        <h2>{account.name}</h2>
+                      </div>
+                      <button type="button" className="ghost-btn" onClick={() => setSelectedAccount(account.id)}>View</button>
+                    </div>
+
+                    <div className="metric-stack">
+                      <div>
+                        <span>Balance</span>
+                        <strong>{formatCurrency(account.balance)}</strong>
+                      </div>
+                      <div>
+                        <span>Equity</span>
+                        <strong>{formatCurrency(account.equity)}</strong>
+                      </div>
+                      <div>
+                        <span>Open positions</span>
+                        <strong>{account.openPositions}</strong>
+                      </div>
+                      <div>
+                        <span>Unrealized P/L</span>
+                        <strong className={account.unrealizedPl >= 0 ? 'positive' : 'negative'}>
+                          {account.unrealizedPl >= 0 ? '+' : ''}{formatCurrency(account.unrealizedPl)}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="card-actions">
+                      <button type="button" className="primary-btn" onClick={() => setSelectedAccount(account.id)}>Launch terminal</button>
+                    </div>
+
+                    {account.id === 'mt5' && (
+                      <label className="toggle-row">
+                        <input type="checkbox" checked={nativeDesktopEnabled} onChange={() => setNativeDesktopEnabled((value) => !value)} />
+                        <span>Trading via native desktop app</span>
+                      </label>
+                    )}
+
+                    {account.id === 'mt5' && nativeDesktopEnabled && (
+                      <p className="sync-note">Account synced — analytics continue to flow into TradeIQ even when trading outside the browser.</p>
+                    )}
+                  </article>
+                ))}
+              </div>
+
+              <div className="terminal-panel">
+                <div className="terminal-header">
+                  <div>
+                    <p className="eyebrow">Embedded terminal</p>
+                    <h3>{selectedAccountData.name} workspace</h3>
+                  </div>
+                  <span className="status-pill">Mocked view</span>
+                </div>
+                <div className="terminal-surface">
+                  <div className="left-column">
+                    <div className="mini-card">
+                      <p className="eyebrow">Watchlist</p>
+                      <ul>
+                        {['NVDA', 'BTCUSD', 'EURUSD'].map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="mini-card">
+                      <p className="eyebrow">Recent activity</p>
+                      <p>Buy NVDA • 1.40 lots • 10:16</p>
+                      <p>Sell EURUSD • 0.80 lots • 10:02</p>
+                    </div>
+                  </div>
+                  <div className="right-column">
+                    <div className="mini-card terminal-visual">
+                      <div className="terminal-grid">
+                        <div>
+                          <p className="eyebrow">Order book</p>
+                          <div className="book-row"><span>Bid</span><strong>144.88</strong></div>
+                          <div className="book-row"><span>Ask</span><strong>145.06</strong></div>
+                        </div>
+                        <div>
+                          <p className="eyebrow">Position</p>
+                          <div className="book-row"><span>Risk</span><strong>1.42%</strong></div>
+                          <div className="book-row"><span>SL</span><strong>142.40</strong></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Analyze' && (
+            <section className="tab-panel analyze-panel">
+              <div className="section-title-row">
+                <div>
+                  <p className="eyebrow">Behavioral analytics</p>
+                  <h2>Alex Morgan performance snapshot</h2>
+                </div>
+                <div className="pill">52 trades • 2 accounts</div>
+              </div>
+
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <span>Win rate</span>
+                  <strong>{analytics.winRate}%</strong>
+                </div>
+                <div className="stat-card">
+                  <span>Average win</span>
+                  <strong>{formatCurrency(analytics.avgWin)}</strong>
+                </div>
+                <div className="stat-card">
+                  <span>Average loss</span>
+                  <strong>{formatCurrency(analytics.avgLoss)}</strong>
+                </div>
+                <div className="stat-card">
+                  <span>R/R ratio</span>
+                  <strong>{analytics.rrRatio}x</strong>
+                </div>
+                <div className="stat-card">
+                  <span>Max drawdown</span>
+                  <strong>{formatCurrency(Math.abs(analytics.maxDrawdown))}</strong>
+                </div>
+                <div className="stat-card">
+                  <span>Total P/L</span>
+                  <strong className={analytics.totalPnL >= 0 ? 'positive' : 'negative'}>{formatCurrency(analytics.totalPnL)}</strong>
+                </div>
+              </div>
+
+              <div className="analytics-grid">
+                <div className="chart-card">
+                  <h3>Equity curve</h3>
+                  <div className="chart-line" aria-label="Equity curve chart">
+                    {analytics.equityCurve.map((value, index) => {
+                      const width = 100 / analytics.equityCurve.length;
+                      const height = 100 - ((value - 90000) / 25000) * 100;
+                      return <span key={`${value}-${index}`} style={{ left: `${index * width}%`, bottom: `${Math.max(8, height)}%` }} />;
+                    })}
+                  </div>
+                </div>
+                <div className="chart-card">
+                  <h3>Exposure by symbol</h3>
+                  <div className="donut-chart">
+                    {exposureEntries.map(([symbol, value], index) => (
+                      <div key={symbol} className="legend-item">
+                        <span className="legend-dot" style={{ background: ['#2dd4bf', '#38bdf8', '#818cf8', '#f59e0b'][index] }} />
+                        <span>{symbol}</span>
+                        <strong>{formatCurrency(value)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="lower-grid">
+                <div className="chart-card">
+                  <h3>Leverage & margin usage</h3>
+                  <div className="metric-stack compact">
+                    <div><span>Current leverage</span><strong>1.42x</strong></div>
+                    <div><span>Margin used</span><strong>73%</strong></div>
+                    <div><span>Margin buffer</span><strong>$18.4k</strong></div>
+                  </div>
+                </div>
+                <div className="chart-card">
+                  <h3>Recent trend</h3>
+                  <p className="trend-copy">Momentum improved after a short consolidation in EURUSD, but volatility rose in the last 10 sessions.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'Insights' && (
+            <section className="tab-panel insights-panel">
+              <div className="section-title-row">
+                <div>
+                  <p className="eyebrow">TradeIQ narrative</p>
+                  <h2>What the data is signaling</h2>
+                </div>
+              </div>
+
+              <div className="insight-summary">
+                <p>You're up 12% this month, but your position size increases roughly 35% after a losing trade — that pattern preceded two of your largest drawdowns.</p>
+              </div>
+
+              <div className="flag-grid">
+                <div className="flag-card warning">
+                  <h3>Position sizing after loss</h3>
+                  <p>Average size rose 34% after losing trades, then reverted only after a higher-volatility session.</p>
+                </div>
+                <div className="flag-card">
+                  <h3>Overtrading in session</h3>
+                  <p>New York session activity clustered around the same setups, creating repeat exposure to NVDA and BTCUSD.</p>
+                </div>
+                <div className="flag-card">
+                  <h3>cTrader copy overlay</h3>
+                  <p>{mockCopyStrategy.strategyName} is pacing +14.8% ROI, but the TradeIQ overlay shows drawdown deterioration across three weeks.</p>
+                </div>
+              </div>
+
+              <div className="copy-card">
+                <div>
+                  <p className="eyebrow">cTrader copy strategy</p>
+                  <h3>{mockCopyStrategy.strategyName}</h3>
+                  <div className="copy-metrics">
+                    <div><span>ROI</span><strong>{mockCopyStrategy.roi}</strong></div>
+                    <div><span>Followers</span><strong>{mockCopyStrategy.followers}</strong></div>
+                    <div><span>Balance</span><strong>{formatCurrency(mockCopyStrategy.balance)}</strong></div>
+                    <div><span>Equity</span><strong>{formatCurrency(mockCopyStrategy.equity)}</strong></div>
+                  </div>
+                </div>
+                <div className="mini-chart">
+                  <div className="mini-bar" style={{ height: '34%' }} />
+                  <div className="mini-bar" style={{ height: '58%' }} />
+                  <div className="mini-bar" style={{ height: '72%' }} />
+                  <div className="mini-bar" style={{ height: '64%' }} />
+                </div>
+                <p className="copy-insight">TradeIQ insight: {mockCopyStrategy.insight}</p>
+              </div>
+            </section>
+          )}
         </div>
       </section>
 
@@ -600,6 +1001,49 @@ export default function App() {
         </div>
       </section>
       <button className="home-fab" onClick={handleHomeClick}>Home</button>
+
+      <button className="chat-launcher" onClick={() => setIsChatOpen((value) => !value)}>
+        {isChatOpen ? 'Close chat' : 'TradeIQ Chat'}
+      </button>
+
+      {isChatOpen && (
+        <div className="chat-panel">
+          <div className="chat-header">
+            <div>
+              <strong>TradeIQ Chat</strong>
+              <p>Support assistant for general trading questions</p>
+            </div>
+            <button className="chat-close" onClick={() => setIsChatOpen(false)} aria-label="Close chat">
+              ×
+            </button>
+          </div>
+
+          <div className="chat-messages">
+            {chatMessages.map((message) => (
+              <div key={message.id} className={`chat-bubble ${message.role}`}>
+                {message.content}
+              </div>
+            ))}
+          </div>
+
+          <div className="chat-quick-actions">
+            {['What is a stop-loss?', 'How should I size a position?', 'How do I think about crypto risk?'].map((suggestion) => (
+              <button key={suggestion} className="quick-chip" onClick={() => setChatInput(suggestion)}>
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          <form className="chat-form" onSubmit={handleChatSubmit}>
+            <input
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              placeholder="Ask about trading advice"
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 :root {
   --bg: #070b14;
@@ -492,6 +492,134 @@ select {
   z-index: 30;
 }
 
+.chat-launcher {
+  position: fixed;
+  right: 16px;
+  bottom: 74px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3f7cff 0%, #1fb6a6 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 12px 16px;
+  box-shadow: 0 14px 30px rgba(10, 20, 38, 0.55);
+  cursor: pointer;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+}
+
+.chat-launcher::before {
+  content: '✦';
+  font-size: 0.95rem;
+}
+
+.chat-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 126px;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid rgba(159, 174, 208, 0.24);
+  border-radius: 16px;
+  background: rgba(9, 14, 27, 0.96);
+  box-shadow: 0 18px 40px rgba(2, 6, 14, 0.45);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(159, 174, 208, 0.18);
+}
+
+.chat-header p {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.chat-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.15rem;
+}
+
+.chat-messages {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.chat-bubble {
+  padding: 10px 12px;
+  border-radius: 12px;
+  max-width: 90%;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.chat-bubble.user {
+  justify-self: end;
+  background: linear-gradient(120deg, #2a7bff 0%, #1fb6a6 100%);
+  color: white;
+}
+
+.chat-bubble.assistant {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f3f6ff;
+}
+
+.chat-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+
+.quick-chip {
+  border: 1px solid rgba(159, 174, 208, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #dce6ff;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.chat-form input {
+  flex: 1;
+  border: 1px solid rgba(159, 174, 208, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  padding: 9px 10px;
+}
+
+.chat-form button {
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(120deg, #2a7bff 0%, #1fb6a6 100%);
+  color: white;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
 .card,
 .panel,
 .hero-copy,
@@ -536,6 +664,299 @@ main .panel:nth-child(2),
   }
 }
 
+/* Unified TradeIQ workspace styles */
+.workspace-panel {
+  margin-top: 16px;
+}
+
+.workspace-header {
+  flex-wrap: wrap;
+}
+
+.workspace-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.top-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-pill {
+  border: 1px solid rgba(159, 174, 208, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #dce6ff;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.nav-pill.active {
+  color: #fff;
+  border-color: rgba(31, 182, 166, 0.44);
+  background: linear-gradient(120deg, #2a7bff 0%, #1fb6a6 100%);
+}
+
+.content-shell {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.tab-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.hero-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(159, 174, 208, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(140deg, rgba(17, 25, 43, 0.92), rgba(9, 16, 30, 0.86));
+}
+
+.hero-badge,
+.status-pill,
+.pill {
+  border: 1px solid rgba(159, 174, 208, 0.3);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #d8e3ff;
+  font-size: 0.8rem;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-card {
+  border: 1px solid rgba(159, 174, 208, 0.22);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(7, 12, 22, 0.78);
+}
+
+.account-card.teal {
+  border-color: rgba(31, 182, 166, 0.25);
+}
+
+.account-card.blue {
+  border-color: rgba(63, 124, 255, 0.25);
+}
+
+.card-head,
+.card-actions,
+.toggle-row,
+.metric-stack,
+.section-title-row,
+.copy-card,
+.copy-metrics,
+.flag-grid,
+.stats-grid,
+.analytics-grid,
+.lower-grid,
+.terminal-header,
+.terminal-surface {
+  display: flex;
+  gap: 10px;
+}
+
+.card-head,
+.card-actions,
+.section-title-row,
+.terminal-header,
+.copy-card {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-stack {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.metric-stack > div,
+.stat-card,
+.chart-card,
+.flag-card,
+.copy-card,
+.terminal-panel,
+.mini-card {
+  border: 1px solid rgba(159, 174, 208, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(7, 12, 22, 0.78);
+}
+
+.metric-stack > div {
+  min-width: 120px;
+}
+
+.metric-stack span,
+.stat-card span,
+.chart-card h3,
+.flag-card h3,
+.copy-card .eyebrow {
+  color: var(--text-soft);
+}
+
+.metric-stack strong,
+.stat-card strong,
+.chart-card strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.ghost-btn,
+.primary-btn {
+  border: 1px solid rgba(159, 174, 208, 0.28);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #dce6ff;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: linear-gradient(120deg, #2a7bff 0%, #1fb6a6 100%);
+  border-color: transparent;
+}
+
+.sync-note {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.terminal-panel,
+.mini-card {
+  display: grid;
+  gap: 10px;
+}
+
+.terminal-surface {
+  flex-wrap: wrap;
+}
+
+.left-column,
+.right-column {
+  flex: 1;
+  min-width: 220px;
+  display: grid;
+  gap: 10px;
+}
+
+.terminal-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.book-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(159, 174, 208, 0.17);
+}
+
+.book-row:last-child {
+  border-bottom: none;
+}
+
+.stats-grid,
+.analytics-grid,
+.lower-grid,
+.flag-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.analytics-grid,
+.lower-grid {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.flag-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chart-line {
+  position: relative;
+  height: 140px;
+  margin-top: 12px;
+  border: 1px solid rgba(159, 174, 208, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(63, 124, 255, 0.14), rgba(31, 182, 166, 0.08));
+  overflow: hidden;
+}
+
+.chart-line span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #2dd4bf;
+  transform: translate(-50%, 50%);
+}
+
+.donut-chart,
+.copy-metrics {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.copy-card {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 88px;
+}
+
+.mini-bar {
+  width: 16px;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, #38bdf8, #2dd4bf);
+}
+
+.copy-insight,
+.trend-copy {
+  color: var(--text-soft);
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 16px 12px 84px;
@@ -551,6 +972,14 @@ main .panel:nth-child(2),
   }
 
   .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-grid,
+  .stats-grid,
+  .analytics-grid,
+  .lower-grid,
+  .flag-grid {
     grid-template-columns: 1fr;
   }
 
