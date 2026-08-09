@@ -13,6 +13,8 @@
   --warn: #ffb449;
   --good: #32d583;
   --bad: #f97066;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
@@ -24,6 +26,7 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
+  width: 100%;
 }
 
 body {
@@ -34,6 +37,8 @@ body {
     radial-gradient(circle at 88% 0%, rgba(31, 182, 166, 0.18), transparent 32%),
     linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 60%, #0a0f1c 100%);
   background-attachment: fixed;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 button,
@@ -42,10 +47,18 @@ select {
   font: inherit;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
 .app-shell {
   max-width: 1340px;
   margin: 0 auto;
-  padding: 26px 24px 88px;
+  padding: calc(26px + var(--safe-top)) 24px calc(88px + var(--safe-bottom));
 }
 
 .topbar {
@@ -480,7 +493,7 @@ select {
 .home-fab {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(16px + var(--safe-bottom));
   border: none;
   border-radius: 999px;
   background: linear-gradient(120deg, #2a7bff 0%, #1fb6a6 100%);
@@ -495,7 +508,7 @@ select {
 .chat-launcher {
   position: fixed;
   right: 16px;
-  bottom: 74px;
+  bottom: calc(74px + var(--safe-bottom));
   border: none;
   border-radius: 999px;
   background: linear-gradient(135deg, #3f7cff 0%, #1fb6a6 100%);
@@ -519,7 +532,7 @@ select {
 .chat-panel {
   position: fixed;
   right: 16px;
-  bottom: 126px;
+  bottom: calc(126px + var(--safe-bottom));
   width: min(360px, calc(100vw - 32px));
   border: 1px solid rgba(159, 174, 208, 0.24);
   border-radius: 16px;
@@ -661,6 +674,13 @@ main .panel:nth-child(2),
   .topnav {
     width: 100%;
     order: 3;
+    flex-wrap: wrap;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .topnav a {
+    flex-shrink: 1;
   }
 }
 
@@ -959,16 +979,40 @@ main .panel:nth-child(2),
 
 @media (max-width: 720px) {
   .app-shell {
-    padding: 16px 12px 84px;
+    padding: calc(14px + var(--safe-top)) 12px calc(84px + var(--safe-bottom));
   }
 
   .topnav {
-    display: none;
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    overflow: visible;
+    flex-wrap: wrap;
+  }
+
+  .topnav a {
+    flex-shrink: 1;
+    flex-grow: 1;
+    border: 1px solid rgba(159, 174, 208, 0.25);
+    border-radius: 999px;
+    padding: 8px 11px;
+    text-align: center;
   }
 
   .topbar-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .topbar-actions .btn,
+  .hero-actions .btn,
+  .chat-form button {
+    min-height: 44px;
+  }
+
+  .topbar-actions .btn {
+    flex: 1 1 48%;
+    min-width: 0;
   }
 
   .metrics-grid {
@@ -985,5 +1029,100 @@ main .panel:nth-child(2),
 
   .balance-amount {
     font-size: 2.05rem;
+  }
+
+  .hero-copy h2 {
+    line-height: 1.08;
+  }
+
+  .chat-panel {
+    right: 10px;
+    left: 10px;
+    width: auto;
+    bottom: calc(124px + var(--safe-bottom));
+  }
+
+  .chat-launcher,
+  .home-fab {
+    right: 10px;
+  }
+
+  .field input,
+  .field select,
+  .chat-form input {
+    font-size: 16px;
+  }
+
+  .panel,
+  .card,
+  .hero-card,
+  .terminal-panel,
+  .mini-card {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .hero-card,
+  .panel {
+    padding: 12px;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .btn,
+  .topbar-actions .btn {
+    width: 100%;
+  }
+
+  .position-row,
+  .social-row,
+  .recommend-row,
+  .watch-row,
+  .flow-row,
+  .mover-row,
+  .wallet-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .right {
+    text-align: left;
+    width: 100%;
+  }
+
+  .toggle-row {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    text-align: center;
+    min-height: 42px;
+  }
+
+  .chat-launcher {
+    padding: 11px 14px;
+    font-size: 0.9rem;
   }
 }
