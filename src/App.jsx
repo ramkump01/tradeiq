@@ -1,5 +1,5 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { mockAccounts, mockTrades, mockCopyStrategy, userProfile } from './data/mockTrades';
+import { mockAccounts, mockTrades, mockCopyStrategy, userProfile } from './data/mockTrades.js';
 
 const tabs = ['Trade', 'Analyze', 'Insights'];
 
