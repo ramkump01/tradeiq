@@ -537,7 +537,7 @@ export default function App() {
         <div className="content-shell">
           {activeTab === 'Trade' && (
             <section className="tab-panel trade-panel">
-              <div className="hero-card">
+              <div className="workspace-hero-card">
                 <div>
                   <p className="eyebrow">Single product experience</p>
                   <h1>One workspace for MT5 and cTrader activity.</h1>

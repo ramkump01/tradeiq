@@ -272,13 +272,30 @@ textarea {
 .metric-card {
   border: 1px solid rgba(159, 174, 208, 0.2);
   border-radius: 12px;
-  padding: 10px 11px;
+  padding: 10px 12px;
   background: var(--panel-strong);
+  min-height: 80px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
 }
 
 .metric-card strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 0;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.metric-card .small-note {
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .content-grid,
@@ -731,7 +748,7 @@ main .panel:nth-child(2),
   gap: 14px;
 }
 
-.hero-card {
+.workspace-hero-card {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -740,6 +757,18 @@ main .panel:nth-child(2),
   border: 1px solid rgba(159, 174, 208, 0.2);
   border-radius: 16px;
   background: linear-gradient(140deg, rgba(17, 25, 43, 0.92), rgba(9, 16, 30, 0.86));
+}
+
+.workspace-hero-card h1 {
+  margin: 6px 0 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.3rem, 2.2vw, 1.75rem);
+  line-height: 1.15;
+}
+
+.workspace-hero-card .hero-copy {
+  margin: 0;
+  color: var(--text-soft);
 }
 
 .hero-badge,
@@ -1019,6 +1048,10 @@ main .panel:nth-child(2),
     grid-template-columns: 1fr;
   }
 
+  .metric-card {
+    min-height: 70px;
+  }
+
   .account-grid,
   .stats-grid,
   .analytics-grid,
@@ -1056,6 +1089,7 @@ main .panel:nth-child(2),
   .panel,
   .card,
   .hero-card,
+  .workspace-hero-card,
   .terminal-panel,
   .mini-card {
     width: 100%;
@@ -1080,8 +1114,13 @@ main .panel:nth-child(2),
   }
 
   .hero-card,
+  .workspace-hero-card,
   .panel {
     padding: 12px;
+  }
+
+  .workspace-hero-card {
+    display: grid;
   }
 
   .hero-actions {
