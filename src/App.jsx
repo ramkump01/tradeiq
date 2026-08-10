@@ -96,6 +96,33 @@ const watchlist = [
   { symbol: 'SPY', price: '$544.60', change: '+0.4%' },
 ];
 
+const ownedPriceTrends = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple',
+    current: '$186.34',
+    change: '+2.4%',
+    platforms: ['MT5', 'TradeIQ'],
+    points: [171.2, 173.1, 174.5, 176.7, 178.4, 180.1, 182.6, 186.34],
+  },
+  {
+    symbol: 'BTCUSD',
+    name: 'Bitcoin',
+    current: '$30,240',
+    change: '+3.1%',
+    platforms: ['cTrader', 'TradeIQ'],
+    points: [28620, 28980, 29220, 29480, 29710, 29890, 30010, 30240],
+  },
+  {
+    symbol: 'EURUSD',
+    name: 'Euro / Dollar',
+    current: '1.0906',
+    change: '-0.6%',
+    platforms: ['MT5', 'cTrader'],
+    points: [1.0988, 1.0979, 1.0964, 1.0952, 1.0941, 1.0928, 1.0916, 1.0906],
+  },
+];
+
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -509,6 +536,58 @@ export default function App() {
             <div className="metric-card card"><span className="small-note">Social badge</span><strong>{sampleUser.socialBadge}</strong></div>
             <div className="metric-card card"><span className="small-note">Risk profile</span><strong>{activeProfile.label}</strong></div>
           </div>
+        </div>
+      </section>
+
+      <section className="card panel price-trends-pane" id="price-trends">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">Cross-platform position monitor</p>
+            <h3 className="section-title">Current prices and trend of owned assets</h3>
+          </div>
+          <span className="badge">Updated every 15s (sample)</span>
+        </div>
+
+        <div className="price-trends-grid">
+          {ownedPriceTrends.map((asset) => {
+            const max = Math.max(...asset.points);
+            const min = Math.min(...asset.points);
+            const points = asset.points.map((value, index) => {
+              const x = asset.points.length === 1 ? 0 : (index / (asset.points.length - 1)) * 100;
+              const y = max === min ? 50 : 100 - ((value - min) / (max - min)) * 100;
+              return `${x},${y}`;
+            });
+            const line = points.join(' ');
+            const area = `0,100 ${line} 100,100`;
+            const trendClass = asset.change.startsWith('-') ? 'negative' : 'positive';
+
+            return (
+              <article className="price-trend-card" key={asset.symbol}>
+                <div className="price-trend-head">
+                  <div>
+                    <p className="small-note">{asset.symbol}</p>
+                    <h4>{asset.name}</h4>
+                  </div>
+                  <span className={`price-change ${trendClass}`}>{asset.change}</span>
+                </div>
+
+                <div className="price-trend-value">{asset.current}</div>
+
+                <div className="platform-tags" aria-label={`${asset.symbol} platforms`}>
+                  {asset.platforms.map((platform) => (
+                    <span key={`${asset.symbol}-${platform}`} className="platform-tag">{platform}</span>
+                  ))}
+                </div>
+
+                <div className="price-chart" role="img" aria-label={`${asset.symbol} trend chart`}>
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline className="price-area" points={area} />
+                    <polyline className="price-line" points={line} />
+                  </svg>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
