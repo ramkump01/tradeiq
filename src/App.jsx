@@ -289,7 +289,6 @@ export default function App() {
               <span className="badge positive">+$4,280</span>
             </div>
             <div className="balance-amount">$128,420</div>
-            <div className="sparkline" />
             <div className="metrics-grid">
               <div className="metric-card card"><span className="small-note">Risk score</span><strong>Moderate</strong></div>
               <div className="metric-card card"><span className="small-note">Open positions</span><strong>12</strong></div>
@@ -504,7 +503,6 @@ export default function App() {
             <span className="badge positive">+$4,280 Today</span>
           </div>
           <div className="balance-amount">{sampleUser.balance}</div>
-          <div className="sparkline" />
           <div className="metrics-grid">
             <div className="metric-card card"><span className="small-note">Placed trades</span><strong>{placedTrades.length}</strong></div>
             <div className="metric-card card"><span className="small-note">Available cash</span><strong>$24,180</strong></div>
