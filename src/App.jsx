@@ -37,6 +37,13 @@ const placedTrades = [
   { ticket: 'TQ-10306', platform: 'TradeIQ', instrument: 'BTCUSD', type: 'Crypto', side: 'Buy', amount: '$12,200', pnl: '+$1,060' },
 ];
 
+const copiedTrades = [
+  { id: 'CP-2044', source: 'North Star Flow', platform: 'cTrader Copy', instrument: 'US100', pnl: '+$320' },
+  { id: 'CP-2051', source: 'North Star Flow', platform: 'cTrader Copy', instrument: 'XAUUSD', pnl: '-$140' },
+  { id: 'CP-2059', source: 'Momentum FX Prime', platform: 'MT5 Copy', instrument: 'EURUSD', pnl: '+$410' },
+  { id: 'CP-2066', source: 'Momentum FX Prime', platform: 'MT5 Copy', instrument: 'GBPJPY', pnl: '+$95' },
+];
+
 const tradeIQProfiles = {
   low: {
     label: 'Low risk steady',
@@ -129,6 +136,15 @@ function formatCurrency(value) {
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function parsePnlValue(value) {
+  return Number(value.replace(/[$,]/g, ''));
+}
+
+function formatSignedCurrency(value) {
+  const absolute = formatCurrency(Math.abs(value));
+  return `${value >= 0 ? '+' : '-'}${absolute}`;
 }
 
 const communityTradeFlow = {
@@ -238,6 +254,40 @@ export default function App() {
 
   const exposureEntries = Object.entries(analytics.exposure).slice(0, 4);
   const selectedAccountData = mockAccounts.find((account) => account.id === selectedAccount) ?? mockAccounts[0];
+  const aggregatePerformance = useMemo(() => {
+    const totals = {
+      MT5: 0,
+      cTrader: 0,
+      TradeIQ: 0,
+      'Copied trades': 0,
+    };
+
+    placedTrades.forEach((trade) => {
+      totals[trade.platform] += parsePnlValue(trade.pnl);
+    });
+
+    copiedTrades.forEach((trade) => {
+      totals['Copied trades'] += parsePnlValue(trade.pnl);
+    });
+
+    const closedPnL = Object.values(totals).reduce((sum, value) => sum + value, 0);
+    const openBrokerPnL = mockAccounts.reduce((sum, account) => sum + account.unrealizedPl, 0);
+    const openCopiedPnL = mockCopyStrategy.equity - mockCopyStrategy.balance;
+    const openPnL = openBrokerPnL + openCopiedPnL;
+    const overallPnL = closedPnL + openPnL;
+    const totalTrades = placedTrades.length + copiedTrades.length;
+    const winningTrades = [...placedTrades, ...copiedTrades].filter((trade) => parsePnlValue(trade.pnl) > 0).length;
+    const winRate = Math.round((winningTrades / totalTrades) * 100);
+
+    return {
+      totals,
+      closedPnL,
+      openPnL,
+      overallPnL,
+      totalTrades,
+      winRate,
+    };
+  }, []);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -548,6 +598,42 @@ export default function App() {
           <span className="badge">Updated every 15s (sample)</span>
         </div>
 
+        <div className="aggregate-strip">
+          <div>
+            <p className="small-note">Aggregated P/L across MT5, cTrader, TradeIQ, and copied trades</p>
+            <strong className={`aggregate-total ${aggregatePerformance.overallPnL >= 0 ? 'positive' : 'negative'}`}>
+              {formatSignedCurrency(aggregatePerformance.overallPnL)}
+            </strong>
+          </div>
+          <div className="aggregate-metrics">
+            <div>
+              <span className="small-note">Closed P/L</span>
+              <strong className={aggregatePerformance.closedPnL >= 0 ? 'positive' : 'negative'}>{formatSignedCurrency(aggregatePerformance.closedPnL)}</strong>
+            </div>
+            <div>
+              <span className="small-note">Open P/L</span>
+              <strong className={aggregatePerformance.openPnL >= 0 ? 'positive' : 'negative'}>{formatSignedCurrency(aggregatePerformance.openPnL)}</strong>
+            </div>
+            <div>
+              <span className="small-note">Win rate</span>
+              <strong>{aggregatePerformance.winRate}%</strong>
+            </div>
+            <div>
+              <span className="small-note">Total trades</span>
+              <strong>{aggregatePerformance.totalTrades}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="platform-pnl-grid">
+          {Object.entries(aggregatePerformance.totals).map(([platform, value]) => (
+            <div className="platform-pnl-card" key={platform}>
+              <span className="small-note">{platform}</span>
+              <strong className={value >= 0 ? 'positive' : 'negative'}>{formatSignedCurrency(value)}</strong>
+            </div>
+          ))}
+        </div>
+
         <div className="price-trends-grid">
           {ownedPriceTrends.map((asset) => {
             const max = Math.max(...asset.points);
@@ -562,7 +648,7 @@ export default function App() {
             const trendClass = asset.change.startsWith('-') ? 'negative' : 'positive';
 
             return (
-              <article className="price-trend-card" key={asset.symbol}>
+              <article className={`price-trend-card ${trendClass}`} key={asset.symbol}>
                 <div className="price-trend-head">
                   <div>
                     <p className="small-note">{asset.symbol}</p>
@@ -584,6 +670,7 @@ export default function App() {
                     <polyline className="price-area" points={area} />
                     <polyline className="price-line" points={line} />
                   </svg>
+                  <span className="live-dot" aria-hidden="true" />
                 </div>
               </article>
             );

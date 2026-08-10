@@ -1010,6 +1010,56 @@ main .panel:nth-child(2),
   margin-top: 16px;
 }
 
+.aggregate-strip {
+  margin-top: 12px;
+  border: 1px solid rgba(159, 174, 208, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(160deg, rgba(10, 19, 36, 0.9), rgba(7, 13, 25, 0.86));
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 12px;
+}
+
+.aggregate-total {
+  display: block;
+  margin-top: 6px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  letter-spacing: 0.01em;
+}
+
+.aggregate-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.aggregate-metrics strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.platform-pnl-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.platform-pnl-card {
+  border: 1px solid rgba(159, 174, 208, 0.2);
+  border-radius: 12px;
+  background: rgba(8, 14, 27, 0.82);
+  padding: 10px;
+}
+
+.platform-pnl-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.02rem;
+}
+
 .price-trends-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1024,6 +1074,26 @@ main .panel:nth-child(2),
   background: linear-gradient(170deg, rgba(12, 19, 35, 0.92), rgba(8, 14, 28, 0.8));
   display: grid;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.price-trend-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0 32%, rgba(255, 255, 255, 0.08) 47%, transparent 62% 100%);
+  transform: translateX(-150%);
+  animation: card-sweep 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.price-trend-card.positive {
+  box-shadow: inset 0 0 0 1px rgba(50, 213, 131, 0.1), 0 10px 24px rgba(6, 15, 30, 0.34);
+}
+
+.price-trend-card.negative {
+  box-shadow: inset 0 0 0 1px rgba(249, 112, 102, 0.1), 0 10px 24px rgba(6, 15, 30, 0.34);
 }
 
 .price-trend-head {
@@ -1075,6 +1145,16 @@ main .panel:nth-child(2),
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(63, 124, 255, 0.09), rgba(31, 182, 166, 0.04));
   overflow: hidden;
+  position: relative;
+}
+
+.price-chart::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(159, 174, 208, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(159, 174, 208, 0.08) 1px, transparent 1px);
+  background-size: 100% 18px, 18px 100%;
+  pointer-events: none;
 }
 
 .price-chart svg {
@@ -1093,6 +1173,62 @@ main .panel:nth-child(2),
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-dasharray: 180;
+  animation: line-pulse 2.4s ease-in-out infinite;
+}
+
+.live-dot {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #32d583;
+  box-shadow: 0 0 0 rgba(50, 213, 131, 0.65);
+  animation: live-flash 1.4s ease-out infinite;
+}
+
+@keyframes live-flash {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(50, 213, 131, 0.55);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(50, 213, 131, 0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(50, 213, 131, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes line-pulse {
+  0% {
+    stroke-dashoffset: 180;
+    stroke-opacity: 0.65;
+  }
+  45% {
+    stroke-opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    stroke-opacity: 0.85;
+  }
+}
+
+@keyframes card-sweep {
+  0%,
+  62% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
 }
 
 @media (max-width: 720px) {
@@ -1143,6 +1279,8 @@ main .panel:nth-child(2),
 
   .account-grid,
   .price-trends-grid,
+  .aggregate-strip,
+  .platform-pnl-grid,
   .stats-grid,
   .analytics-grid,
   .lower-grid,
