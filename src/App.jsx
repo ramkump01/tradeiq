@@ -5,8 +5,10 @@ import {
   mockCopyStrategy,
   userProfile,
   copyTraders,
+  symbolAssetClass,
   generateImportedTrades,
 } from './data/mockTrades.js';
+import { optimizePortfolio } from './utils/portfolioOptimizer.js';
 
 const tabs = ['Trade', 'Analyze', 'Insights'];
 
@@ -117,6 +119,7 @@ const ownedPriceTrends = [
     current: '$186.34',
     change: '+2.4%',
     platforms: ['MT5', 'TradeIQ'],
+    allocationUsd: 18634,
     points: [171.2, 173.1, 174.5, 176.7, 178.4, 180.1, 182.6, 186.34],
   },
   {
@@ -125,6 +128,7 @@ const ownedPriceTrends = [
     current: '$30,240',
     change: '+3.1%',
     platforms: ['cTrader', 'TradeIQ'],
+    allocationUsd: 22680,
     points: [28620, 28980, 29220, 29480, 29710, 29890, 30010, 30240],
   },
   {
@@ -133,9 +137,22 @@ const ownedPriceTrends = [
     current: '1.0906',
     change: '-0.6%',
     platforms: ['MT5', 'cTrader'],
+    allocationUsd: 9815,
     points: [1.0988, 1.0979, 1.0964, 1.0952, 1.0941, 1.0928, 1.0916, 1.0906],
   },
 ];
+
+const totalAllocationUsd = ownedPriceTrends.reduce((sum, asset) => sum + asset.allocationUsd, 0);
+
+// Computed once at module load since the underlying price history is static demo data.
+const portfolioOptimization = optimizePortfolio(
+  ownedPriceTrends.map((asset) => ({
+    symbol: asset.symbol,
+    points: asset.points,
+    currentWeight: asset.allocationUsd / totalAllocationUsd,
+  }))
+);
+
 
 const brokerPlatforms = [
   {
@@ -348,6 +365,34 @@ export default function App() {
 
   const exposureEntries = Object.entries(analytics.exposure).slice(0, 4);
   const selectedAccountData = mockAccounts.find((account) => account.id === selectedAccount) ?? mockAccounts[0];
+
+  const userRiskScore = { low: 2, medium: 5, high: 8 }[riskTolerance];
+
+  const userAssetClassExposure = useMemo(() => {
+    const byClass = {};
+    Object.entries(analytics.exposure).forEach(([symbol, size]) => {
+      const assetClass = symbolAssetClass[symbol] || 'Other';
+      byClass[assetClass] = (byClass[assetClass] || 0) + size;
+    });
+    return Object.entries(byClass).sort((a, b) => b[1] - a[1]);
+  }, [analytics.exposure]);
+
+  const userTopAssetClasses = userAssetClassExposure.slice(0, 2).map(([assetClass]) => assetClass);
+
+  // Scores each trader against the user's live risk setting and asset-class exposure.
+  const traderMatches = useMemo(() => {
+    return copyTraders
+      .map((trader) => {
+        const riskAlignment = Math.max(0, 100 - Math.abs(userRiskScore - trader.riskScore) * 10);
+        const overlap = trader.assetClasses.filter((assetClass) => userTopAssetClasses.includes(assetClass)).length;
+        const unionSize = new Set([...trader.assetClasses, ...userTopAssetClasses]).size;
+        const classAlignment = unionSize ? (overlap / unionSize) * 100 : 0;
+        const match = Math.round(riskAlignment * 0.6 + classAlignment * 0.4);
+        return { ...trader, match };
+      })
+      .sort((a, b) => b.match - a.match);
+  }, [userRiskScore, userTopAssetClasses]);
+
   const aggregatePerformance = useMemo(() => {
     const totals = {
       MT5: 0,
@@ -695,6 +740,7 @@ export default function App() {
           <a href="#risk-engine">Risk Engine</a>
           <a href="#broker-connect">Connect Broker</a>
           <a href="#tradeiq-dashboard">TradeIQ</a>
+          <a href="#optimizer">Optimizer</a>
           <a href="#copy-trading">Copy Trading</a>
           <a href="#social-trends">Social Trends</a>
           <a href="#movers">Movers</a>
@@ -1154,16 +1200,77 @@ export default function App() {
         </div>
       </section>
 
+      <section className="card panel" id="optimizer">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">TradeIQ Portfolio Optimizer</p>
+            <h3 className="section-title">Modern Portfolio Theory rebalancing</h3>
+          </div>
+          <span className="badge">Max-Sharpe engine</span>
+        </div>
+        <p className="list-meta" style={{ marginTop: '4px' }}>
+          Computed from historical returns and covariance of your held assets — TradeIQ searches allocations to find the
+          mix with the best risk-adjusted return (Sharpe ratio).
+        </p>
+
+        <div className="optimizer-summary">
+          <div>
+            <span className="small-note">Current Sharpe</span>
+            <strong>{portfolioOptimization.current.sharpe.toFixed(2)}</strong>
+          </div>
+          <div>
+            <span className="small-note">Optimal Sharpe</span>
+            <strong className="positive">{portfolioOptimization.optimal.sharpe.toFixed(2)}</strong>
+          </div>
+          <div>
+            <span className="small-note">Expected return lift</span>
+            <strong className="positive">
+              +{((portfolioOptimization.optimal.expectedReturn - portfolioOptimization.current.expectedReturn) * 100).toFixed(2)}%
+            </strong>
+          </div>
+          <div>
+            <span className="small-note">Volatility change</span>
+            <strong className={portfolioOptimization.optimal.volatility <= portfolioOptimization.current.volatility ? 'positive' : 'negative'}>
+              {((portfolioOptimization.optimal.volatility - portfolioOptimization.current.volatility) * 100).toFixed(2)}%
+            </strong>
+          </div>
+        </div>
+
+        <div className="optimizer-grid">
+          {portfolioOptimization.assets.map((asset) => {
+            const deltaUsd = (asset.optimalWeight - asset.currentWeight) * totalAllocationUsd;
+            return (
+              <div className="optimizer-row" key={asset.symbol}>
+                <div>
+                  <strong>{asset.symbol}</strong>
+                  <div className="list-meta">
+                    {Math.round(asset.currentWeight * 100)}% now → {Math.round(asset.optimalWeight * 100)}% optimal
+                  </div>
+                </div>
+                <div className="optimizer-bar-track">
+                  <div className="optimizer-bar-current" style={{ width: `${asset.currentWeight * 100}%` }} />
+                  <div className="optimizer-bar-optimal" style={{ width: `${asset.optimalWeight * 100}%` }} />
+                </div>
+                <div className="right">
+                  <strong className={deltaUsd >= 0 ? 'positive' : 'negative'}>{formatSignedCurrency(deltaUsd)}</strong>
+                  <div className="list-meta">{deltaUsd >= 0 ? 'Increase' : 'Reduce'} allocation</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="card panel" id="copy-trading">
         <div className="panel-header">
           <div>
             <p className="small-note">Copy trading</p>
             <h3 className="section-title">Top performing traders to mirror</h3>
           </div>
-          <span className="badge">Verified track record</span>
+          <span className="badge">Matched to your risk profile</span>
         </div>
         <div className="copy-trader-grid">
-          {copyTraders.map((trader) => (
+          {traderMatches.map((trader, index) => (
             <article className="trader-card" key={trader.id}>
               <div className="trader-card-head">
                 <div className="trader-avatar">{trader.avatar}</div>
@@ -1171,6 +1278,7 @@ export default function App() {
                   <strong>{trader.name}</strong>
                   <div className="list-meta">{trader.strategy}</div>
                 </div>
+                <span className={`match-badge ${index === 0 ? 'best' : ''}`}>{trader.match}% match</span>
               </div>
 
               <div className="trader-chart">

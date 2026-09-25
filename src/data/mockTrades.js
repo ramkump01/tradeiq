@@ -87,6 +87,7 @@ export const copyTraders = [
     winRate: 71,
     aum: 4200000,
     tags: ['Equities', 'AI'],
+    assetClasses: ['Equities'],
     curve: [100, 104, 108, 106, 113, 119, 124, 131, 128, 136, 142],
   },
   {
@@ -101,6 +102,7 @@ export const copyTraders = [
     winRate: 63,
     aum: 2650000,
     tags: ['Macro', 'Crypto'],
+    assetClasses: ['Forex', 'Crypto'],
     curve: [100, 98, 103, 107, 105, 111, 116, 114, 119, 121, 118],
   },
   {
@@ -115,6 +117,7 @@ export const copyTraders = [
     winRate: 68,
     aum: 6100000,
     tags: ['Swing', 'Momentum'],
+    assetClasses: ['Equities', 'Crypto'],
     curve: [100, 106, 111, 109, 118, 126, 122, 133, 140, 138, 149],
   },
   {
@@ -129,9 +132,34 @@ export const copyTraders = [
     winRate: 77,
     aum: 1800000,
     tags: ['Income', 'Low Risk'],
+    assetClasses: ['Equities'],
     curve: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
   },
 ];
+
+export const symbolAssetClass = {
+  AAPL: 'Equities',
+  NVDA: 'Equities',
+  MSFT: 'Equities',
+  AMZN: 'Equities',
+  SPY: 'Equities',
+  COIN: 'Equities',
+  MSTR: 'Equities',
+  NIO: 'Equities',
+  RIVN: 'Equities',
+  BABA: 'Equities',
+  TSLA: 'Equities',
+  BTCUSD: 'Crypto',
+  SOLUSD: 'Crypto',
+  EURUSD: 'Forex',
+  GBPJPY: 'Forex',
+  GBPUSD: 'Forex',
+  AUDUSD: 'Forex',
+  USDJPY: 'Forex',
+  XAUUSD: 'Commodities',
+  US100: 'Indices',
+  US30: 'Indices',
+};
 
 const brokerSymbolPool = {
   MT5: ['EURUSD', 'GBPJPY', 'XAUUSD', 'US100', 'USDJPY'],
