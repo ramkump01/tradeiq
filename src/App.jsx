@@ -1,5 +1,12 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { mockAccounts, mockTrades, mockCopyStrategy, userProfile } from './data/mockTrades.js';
+import {
+  mockAccounts,
+  mockTrades,
+  mockCopyStrategy,
+  userProfile,
+  copyTraders,
+  generateImportedTrades,
+} from './data/mockTrades.js';
 
 const tabs = ['Trade', 'Analyze', 'Insights'];
 
@@ -28,7 +35,7 @@ const socialLeaders = [
   { name: 'Sara Khan', tag: 'Momentum swing trader', follow: 'Copy' },
 ];
 
-const placedTrades = [
+const basePlacedTrades = [
   { ticket: 'CT-93284', platform: 'cTrader', instrument: 'XAUUSD', type: 'Commodities', side: 'Buy', amount: '$6,480', pnl: '+$212' },
   { ticket: 'MT5-88012', platform: 'MT5', instrument: 'EURUSD', type: 'Forex', side: 'Buy', amount: '$3,100', pnl: '+$84' },
   { ticket: 'TQ-10291', platform: 'TradeIQ', instrument: 'AAPL', type: 'Stock', side: 'Buy', amount: '$8,420', pnl: '+$428' },
@@ -130,6 +137,60 @@ const ownedPriceTrends = [
   },
 ];
 
+const brokerPlatforms = [
+  {
+    id: 'MT5',
+    name: 'MetaTrader 5',
+    fields: [
+      { key: 'login', label: 'Account login', placeholder: 'e.g. 50219873' },
+      { key: 'server', label: 'Server', placeholder: 'e.g. Equinox-Live03' },
+      { key: 'password', label: 'Investor password', placeholder: 'Read-only access recommended', type: 'password' },
+    ],
+  },
+  {
+    id: 'cTrader',
+    name: 'cTrader',
+    fields: [
+      { key: 'login', label: 'Account ID', placeholder: 'e.g. 4471029' },
+      { key: 'token', label: 'API access token', placeholder: 'Paste read-only OAuth token', type: 'password' },
+    ],
+  },
+];
+
+// Renders a gradient-filled line chart from a series of numeric points.
+function AreaChart({ points, id, positive = true, height = 100 }) {
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const coords = points.map((value, index) => {
+    const x = points.length === 1 ? 0 : (index / (points.length - 1)) * 100;
+    const y = max === min ? 50 : 100 - ((value - min) / (max - min)) * 100;
+    return [x, y];
+  });
+  const line = coords.map(([x, y]) => `${x},${y}`).join(' ');
+  const area = `0,100 ${line} 100,100`;
+  const gradientId = `area-gradient-${id}`;
+  const tone = positive ? '#1fd8a4' : '#f9686f';
+
+  return (
+    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" className="area-chart-svg">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={tone} stopOpacity="0.42" />
+          <stop offset="100%" stopColor={tone} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[25, 50, 75].map((gridY) => (
+        <line key={gridY} x1="0" y1={gridY} x2="100" y2={gridY} className="area-chart-grid" />
+      ))}
+      <polyline points={area} fill={`url(#${gradientId})`} stroke="none" />
+      <polyline points={line} fill="none" stroke={tone} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      {coords.length > 0 && (
+        <circle cx={coords[coords.length - 1][0]} cy={coords[coords.length - 1][1]} r="2.4" fill={tone} />
+      )}
+    </svg>
+  );
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -201,8 +262,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('Trade');
   const [selectedAccount, setSelectedAccount] = useState('mt5');
   const [nativeDesktopEnabled, setNativeDesktopEnabled] = useState(false);
-  const [status, setStatus] = useState('Illustration only - no live brokerage integration.');
+  const [status, setStatus] = useState('Order preview only - connect a broker below to enable live routing.');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [connectPlatform, setConnectPlatform] = useState('MT5');
+  const [connectForm, setConnectForm] = useState({});
+  const [brokerConnections, setBrokerConnections] = useState([]);
+  const [importedTrades, setImportedTrades] = useState([]);
+  const [importStatus, setImportStatus] = useState('idle');
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([
     {
@@ -223,18 +289,46 @@ export default function App() {
   const estimatedCost = useMemo(() => selectedInstrument.price * quantity, [selectedInstrument, quantity]);
   const activeProfile = tradeIQProfiles[riskTolerance];
 
+  const placedTrades = useMemo(() => {
+    const importedRows = importedTrades.map((trade) => ({
+      ticket: trade.ticket,
+      platform: trade.platform,
+      instrument: trade.instrument,
+      type: trade.type,
+      side: trade.side,
+      amount: trade.amount,
+      pnl: trade.pnl,
+    }));
+    return [...importedRows, ...basePlacedTrades];
+  }, [importedTrades]);
+
+  const combinedAnalyticsTrades = useMemo(() => {
+    const importedAnalyticsRows = importedTrades.map((trade, index) => ({
+      id: trade.ticket,
+      account: trade.platform,
+      symbol: trade.symbolKey,
+      side: trade.sideKey,
+      size: trade.analyticsSize,
+      pnl: trade.analyticsPnl,
+      session: 'Imported',
+      date: trade.importedAt,
+    }));
+    return [...mockTrades, ...importedAnalyticsRows];
+  }, [importedTrades]);
+
   const analytics = useMemo(() => {
-    const positive = mockTrades.filter((trade) => trade.pnl > 0);
-    const negative = mockTrades.filter((trade) => trade.pnl < 0);
-    const totalPnL = mockTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-    const winRate = Math.round((positive.length / mockTrades.length) * 100);
+    const trades = combinedAnalyticsTrades;
+    const positive = trades.filter((trade) => trade.pnl > 0);
+    const negative = trades.filter((trade) => trade.pnl < 0);
+    const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+    const winRate = Math.round((positive.length / trades.length) * 100);
     const avgWin = positive.length ? positive.reduce((sum, trade) => sum + trade.pnl, 0) / positive.length : 0;
     const avgLoss = negative.length ? Math.abs(negative.reduce((sum, trade) => sum + trade.pnl, 0) / negative.length) : 0;
     const rrRatio = avgLoss ? Number((avgWin / avgLoss).toFixed(2)) : 0;
 
     const running = [];
     let balance = 100000;
-    mockTrades.forEach((trade) => {
+    trades.forEach((trade) => {
       balance += trade.pnl;
       running.push(balance);
     });
@@ -244,13 +338,13 @@ export default function App() {
       return Math.min(worst, value - peak);
     }, 0);
 
-    const exposure = mockTrades.reduce((acc, trade) => {
+    const exposure = trades.reduce((acc, trade) => {
       acc[trade.symbol] = (acc[trade.symbol] || 0) + trade.size;
       return acc;
     }, {});
 
     return { winRate, avgWin, avgLoss, rrRatio, totalPnL, maxDrawdown, equityCurve: running, exposure };
-  }, []);
+  }, [combinedAnalyticsTrades]);
 
   const exposureEntries = Object.entries(analytics.exposure).slice(0, 4);
   const selectedAccountData = mockAccounts.find((account) => account.id === selectedAccount) ?? mockAccounts[0];
@@ -287,11 +381,59 @@ export default function App() {
       totalTrades,
       winRate,
     };
-  }, []);
+  }, [placedTrades]);
+
+  const importedInsight = useMemo(() => {
+    if (!importedTrades.length) {
+      return null;
+    }
+    const bySymbol = importedTrades.reduce((acc, trade) => {
+      acc[trade.symbolKey] = (acc[trade.symbolKey] || 0) + trade.analyticsSize;
+      return acc;
+    }, {});
+    const [topSymbol, topExposure] = Object.entries(bySymbol).sort((a, b) => b[1] - a[1])[0];
+    const platforms = [...new Set(importedTrades.map((trade) => trade.platform))].join(' + ');
+    return {
+      title: `Rebalance after ${platforms} import`,
+      reason: `${importedTrades.length} imported trades added ${formatCurrency(topExposure)} of exposure to ${topSymbol}. TradeIQ has folded this into your risk model.`,
+      confidence: '90%',
+    };
+  }, [importedTrades]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    setStatus(`${action === 'buy' ? 'Buy' : 'Sell'} order prepared for ${quantity} ${selectedInstrument.symbol} - demo only`);
+    setStatus(`${action === 'buy' ? 'Buy' : 'Sell'} order prepared for ${quantity} ${selectedInstrument.symbol} - review before routing to a connected broker.`);
+  };
+
+  const handleConnectFieldChange = (key, value) => {
+    setConnectForm((form) => ({ ...form, [key]: value }));
+  };
+
+  const handleBrokerConnect = (event) => {
+    event.preventDefault();
+    const login = connectForm.login?.trim();
+    if (!login) {
+      setImportStatus('error');
+      return;
+    }
+
+    setImportStatus('connecting');
+
+    setTimeout(() => {
+      const newTrades = generateImportedTrades(connectPlatform, login);
+      setImportedTrades((existing) => [...newTrades, ...existing]);
+      setBrokerConnections((existing) => [
+        {
+          platform: connectPlatform,
+          login,
+          tradesImported: newTrades.length,
+          connectedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...existing.filter((connection) => connection.login !== login || connection.platform !== connectPlatform),
+      ]);
+      setConnectForm({});
+      setImportStatus('success');
+    }, 900);
   };
 
   const handleChatSubmit = (event) => {
@@ -345,9 +487,9 @@ export default function App() {
 
         <section className="hero">
           <div className="hero-copy">
-            <p className="muted">MVP concept - illustration only</p>
-            <h2>Trade stocks, crypto, forex and more with AI-backed insight.</h2>
-            <p>Follow top traders, mirror smart portfolios, and let TradeIQ recommend your next move based on your live holdings.</p>
+            <p className="muted">Multi-asset trading, engineered for performance</p>
+            <h2>Institutional-grade analytics for stocks, crypto and forex.</h2>
+            <p>Follow verified top traders, mirror proven portfolios, and let the TradeIQ recommendation engine act on your live holdings — including trades imported directly from MT5 and cTrader.</p>
             <div className="hero-actions">
               <button className="btn btn-secondary">Register</button>
               <button className="btn btn-primary" onClick={() => setIsLoggedIn(true)}>Login To Dashboard</button>
@@ -551,7 +693,9 @@ export default function App() {
           <a href="#all-trades">All Trades</a>
           <a href="#market-flow">Market Flow</a>
           <a href="#risk-engine">Risk Engine</a>
+          <a href="#broker-connect">Connect Broker</a>
           <a href="#tradeiq-dashboard">TradeIQ</a>
+          <a href="#copy-trading">Copy Trading</a>
           <a href="#social-trends">Social Trends</a>
           <a href="#movers">Movers</a>
           <a href="#watchlist">Watchlist</a>
@@ -636,15 +780,6 @@ export default function App() {
 
         <div className="price-trends-grid">
           {ownedPriceTrends.map((asset) => {
-            const max = Math.max(...asset.points);
-            const min = Math.min(...asset.points);
-            const points = asset.points.map((value, index) => {
-              const x = asset.points.length === 1 ? 0 : (index / (asset.points.length - 1)) * 100;
-              const y = max === min ? 50 : 100 - ((value - min) / (max - min)) * 100;
-              return `${x},${y}`;
-            });
-            const line = points.join(' ');
-            const area = `0,100 ${line} 100,100`;
             const trendClass = asset.change.startsWith('-') ? 'negative' : 'positive';
 
             return (
@@ -666,10 +801,7 @@ export default function App() {
                 </div>
 
                 <div className="price-chart" role="img" aria-label={`${asset.symbol} trend chart`}>
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <polyline className="price-area" points={area} />
-                    <polyline className="price-line" points={line} />
-                  </svg>
+                  <AreaChart points={asset.points} id={asset.symbol} positive={trendClass === 'positive'} height={100} />
                   <span className="live-dot" aria-hidden="true" />
                 </div>
               </article>
@@ -707,7 +839,7 @@ export default function App() {
                   <h1>One workspace for MT5 and cTrader activity.</h1>
                   <p className="hero-copy">Alex Morgan stays signed in once while TradeIQ surfaces both broker environments as a unified analytics layer.</p>
                 </div>
-                <div className="hero-badge">SSO-ready demo</div>
+                <div className="hero-badge">Single sign-on</div>
               </div>
 
               <div className="account-grid">
@@ -766,7 +898,7 @@ export default function App() {
                     <p className="eyebrow">Embedded terminal</p>
                     <h3>{selectedAccountData.name} workspace</h3>
                   </div>
-                  <span className="status-pill">Mocked view</span>
+                  <span className="status-pill">Streaming</span>
                 </div>
                 <div className="terminal-surface">
                   <div className="left-column">
@@ -845,12 +977,8 @@ export default function App() {
               <div className="analytics-grid">
                 <div className="chart-card">
                   <h3>Equity curve</h3>
-                  <div className="chart-line" aria-label="Equity curve chart">
-                    {analytics.equityCurve.map((value, index) => {
-                      const width = 100 / analytics.equityCurve.length;
-                      const height = 100 - ((value - 90000) / 25000) * 100;
-                      return <span key={`${value}-${index}`} style={{ left: `${index * width}%`, bottom: `${Math.max(8, height)}%` }} />;
-                    })}
+                  <div className="equity-chart" aria-label="Equity curve chart">
+                    <AreaChart points={analytics.equityCurve} id="equity-curve" positive={analytics.totalPnL >= 0} height={100} />
                   </div>
                 </div>
                 <div className="chart-card">
@@ -951,6 +1079,139 @@ export default function App() {
         </div>
         <div className="list-meta" style={{ marginTop: '10px' }}>
           {activeProfile.appetite} TradeIQ portfolio analysis: {activeProfile.health}
+        </div>
+      </section>
+
+      <section className="card panel" id="broker-connect">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">Broker sync</p>
+            <h3 className="section-title">Import your MT5 or cTrader trade history</h3>
+          </div>
+          <span className="badge">Read-only, analytics only</span>
+        </div>
+        <p className="list-meta" style={{ marginTop: '4px' }}>
+          Connect an existing account to pull closed and open trades into TradeIQ. Imported activity flows straight into
+          your portfolio view and the recommendation engine — nothing is traded automatically.
+        </p>
+
+        <div className="broker-connect-grid">
+          <div className="broker-platform-picker">
+            {brokerPlatforms.map((platform) => (
+              <button
+                type="button"
+                key={platform.id}
+                className={`toggle-btn ${connectPlatform === platform.id ? 'active' : ''}`}
+                onClick={() => {
+                  setConnectPlatform(platform.id);
+                  setConnectForm({});
+                  setImportStatus('idle');
+                }}
+              >
+                {platform.name}
+              </button>
+            ))}
+          </div>
+
+          <form className="connect-form" onSubmit={handleBrokerConnect}>
+            {brokerPlatforms
+              .find((platform) => platform.id === connectPlatform)
+              .fields.map((field) => (
+                <div className="field" key={field.key}>
+                  <label htmlFor={`connect-${field.key}`}>{field.label}</label>
+                  <input
+                    id={`connect-${field.key}`}
+                    type={field.type || 'text'}
+                    placeholder={field.placeholder}
+                    value={connectForm[field.key] || ''}
+                    onChange={(event) => handleConnectFieldChange(field.key, event.target.value)}
+                  />
+                </div>
+              ))}
+            <button className="btn btn-primary" type="submit" disabled={importStatus === 'connecting'}>
+              {importStatus === 'connecting' ? 'Connecting…' : `Connect & import ${connectPlatform} trades`}
+            </button>
+            {importStatus === 'success' && <p className="import-status success">Import complete — new trades are now in your portfolio and recommendation engine.</p>}
+            {importStatus === 'error' && <p className="import-status error">Enter your account login to continue.</p>}
+          </form>
+
+          <div className="connected-accounts">
+            <p className="small-note">Connected accounts</p>
+            {brokerConnections.length === 0 && <p className="list-meta">No broker connected yet — link MT5 or cTrader to enrich your recommendations.</p>}
+            {brokerConnections.map((connection) => (
+              <div className="connected-account-row" key={`${connection.platform}-${connection.login}`}>
+                <div>
+                  <strong>{connection.platform}</strong>
+                  <div className="list-meta">Login •••{connection.login.slice(-4)}</div>
+                </div>
+                <div className="right">
+                  <strong>{connection.tradesImported} trades imported</strong>
+                  <div className="list-meta">Synced {connection.connectedAt}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card panel" id="copy-trading">
+        <div className="panel-header">
+          <div>
+            <p className="small-note">Copy trading</p>
+            <h3 className="section-title">Top performing traders to mirror</h3>
+          </div>
+          <span className="badge">Verified track record</span>
+        </div>
+        <div className="copy-trader-grid">
+          {copyTraders.map((trader) => (
+            <article className="trader-card" key={trader.id}>
+              <div className="trader-card-head">
+                <div className="trader-avatar">{trader.avatar}</div>
+                <div>
+                  <strong>{trader.name}</strong>
+                  <div className="list-meta">{trader.strategy}</div>
+                </div>
+              </div>
+
+              <div className="trader-chart">
+                <AreaChart points={trader.curve} id={trader.id} positive={trader.roi30d >= 0} height={60} />
+              </div>
+
+              <div className="trader-stats">
+                <div>
+                  <span>YTD return</span>
+                  <strong className="positive">+{trader.roiYtd}%</strong>
+                </div>
+                <div>
+                  <span>30 days</span>
+                  <strong className={trader.roi30d >= 0 ? 'positive' : 'negative'}>{trader.roi30d >= 0 ? '+' : ''}{trader.roi30d}%</strong>
+                </div>
+                <div>
+                  <span>Win rate</span>
+                  <strong>{trader.winRate}%</strong>
+                </div>
+                <div>
+                  <span>Copiers</span>
+                  <strong>{trader.copiers.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              <div className="risk-meter" aria-label={`Risk score ${trader.riskScore} out of 10`}>
+                <span className="small-note">Risk score {trader.riskScore}/10</span>
+                <div className="risk-meter-track">
+                  <div className="risk-meter-fill" style={{ width: `${trader.riskScore * 10}%` }} />
+                </div>
+              </div>
+
+              <div className="platform-tags">
+                {trader.tags.map((tag) => (
+                  <span key={tag} className="platform-tag">{tag}</span>
+                ))}
+              </div>
+
+              <button className="btn btn-primary" type="button">Copy {trader.name.split(' ')[0]}</button>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -1072,6 +1333,18 @@ export default function App() {
             <span className="badge">Live signals</span>
           </div>
           <div className="list">
+            {importedInsight && (
+              <div className="recommend-row imported" key="imported-insight">
+                <div>
+                  <strong>{importedInsight.title}</strong>
+                  <div className="list-meta">{importedInsight.reason}</div>
+                </div>
+                <div className="right">
+                  <strong>{importedInsight.confidence}</strong>
+                  <button className="btn btn-ghost">Apply</button>
+                </div>
+              </div>
+            )}
             {activeProfile.recommendations.map((idea) => (
               <div className="recommend-row" key={idea.title}>
                 <div>

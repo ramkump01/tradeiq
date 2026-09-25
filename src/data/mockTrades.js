@@ -73,3 +73,115 @@ export const mockCopyStrategy = {
   equity: 141760,
   insight: 'Drawdown widened for three straight weeks and is now outside its historical range.',
 };
+
+export const copyTraders = [
+  {
+    id: 'mina-chen',
+    name: 'Mina Chen',
+    avatar: 'MC',
+    strategy: 'AI Infrastructure Momentum',
+    roiYtd: 34.2,
+    roi30d: 6.1,
+    riskScore: 4,
+    copiers: 3820,
+    winRate: 71,
+    aum: 4200000,
+    tags: ['Equities', 'AI'],
+    curve: [100, 104, 108, 106, 113, 119, 124, 131, 128, 136, 142],
+  },
+  {
+    id: 'leo-rivera',
+    name: 'Leo Rivera',
+    avatar: 'LR',
+    strategy: 'Macro + Crypto Rotation',
+    roiYtd: 21.7,
+    roi30d: 2.4,
+    riskScore: 6,
+    copiers: 2210,
+    winRate: 63,
+    aum: 2650000,
+    tags: ['Macro', 'Crypto'],
+    curve: [100, 98, 103, 107, 105, 111, 116, 114, 119, 121, 118],
+  },
+  {
+    id: 'sara-khan',
+    name: 'Sara Khan',
+    avatar: 'SK',
+    strategy: 'Momentum Swing Trading',
+    roiYtd: 45.6,
+    roi30d: 8.9,
+    riskScore: 7,
+    copiers: 5140,
+    winRate: 68,
+    aum: 6100000,
+    tags: ['Swing', 'Momentum'],
+    curve: [100, 106, 111, 109, 118, 126, 122, 133, 140, 138, 149],
+  },
+  {
+    id: 'noah-park',
+    name: 'Noah Park',
+    avatar: 'NP',
+    strategy: 'Low-Volatility Income',
+    roiYtd: 12.4,
+    roi30d: 1.1,
+    riskScore: 2,
+    copiers: 1490,
+    winRate: 77,
+    aum: 1800000,
+    tags: ['Income', 'Low Risk'],
+    curve: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110],
+  },
+];
+
+const brokerSymbolPool = {
+  MT5: ['EURUSD', 'GBPJPY', 'XAUUSD', 'US100', 'USDJPY'],
+  cTrader: ['XAUUSD', 'GBPUSD', 'US30', 'BTCUSD', 'AUDUSD'],
+};
+
+const brokerAssetType = {
+  EURUSD: 'Forex',
+  GBPJPY: 'Forex',
+  GBPUSD: 'Forex',
+  AUDUSD: 'Forex',
+  USDJPY: 'Forex',
+  XAUUSD: 'Commodities',
+  US100: 'Indices',
+  US30: 'Indices',
+  BTCUSD: 'Crypto',
+};
+
+let importCounter = 0;
+
+// Simulates fetching recent trade history from a broker's trade API for the import flow.
+export function generateImportedTrades(platform, accountLogin) {
+  const pool = brokerSymbolPool[platform] || brokerSymbolPool.MT5;
+  const count = 4 + (accountLogin.length % 3);
+  const trades = [];
+
+  for (let index = 0; index < count; index += 1) {
+    importCounter += 1;
+    const symbol = pool[(importCounter + index) % pool.length];
+    const side = index % 2 === 0 ? 'Buy' : 'Sell';
+    const size = 1500 + ((importCounter * 137 + index * 211) % 6000);
+    const pnlMagnitude = 60 + ((importCounter * 53 + index * 97) % 900);
+    const pnl = index % 3 === 0 ? -pnlMagnitude : pnlMagnitude;
+    const ticketPrefix = platform === 'MT5' ? 'MT5' : 'CT';
+
+    trades.push({
+      ticket: `${ticketPrefix}-IMP-${1000 + importCounter}`,
+      platform,
+      instrument: symbol,
+      type: brokerAssetType[symbol] || 'Forex',
+      side,
+      amount: `$${size.toLocaleString()}`,
+      pnl: `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`,
+      analyticsPnl: pnl,
+      analyticsSize: size,
+      symbolKey: symbol,
+      sideKey: side === 'Buy' ? 'Long' : 'Short',
+      importedAt: new Date().toISOString(),
+    });
+  }
+
+  return trades;
+}
